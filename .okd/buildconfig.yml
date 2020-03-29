@@ -1,0 +1,33 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewApp
+  labels:
+    app: redirector
+  name: redirector
+spec:
+  failedBuildsHistoryLimit: 5
+  output:
+    to:
+      kind: ImageStreamTag
+      name: redirector:0.0.1-SNAPSHOT
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    git:
+      ref: dev       
+      uri: git@gitlab.snapp.ir:fintech/redirector.git
+    sourceSecret:
+      name: gitlab
+    type: Git
+  strategy:
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: alpine:3.9
+    type: Docker
+  successfulBuildsHistoryLimit: 15
+  triggers: []
+status:

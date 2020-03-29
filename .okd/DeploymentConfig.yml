@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: ${APP_NAME}
+objects:
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app.snappcloudsnappcloud.io/name: "${SERVICE_NAME}"
+        app.snappcloudsnappcloud.io/instance: "${SERVICE_NAME}-${CI_COMMIT_REF_NAME}"
+        app.snappcloudsnappcloud.io/version: ${CI_COMMIT_REF_NAME}
+        app.snappcloudsnappcloud.io/managed-by: backend
+        app.snappcloud.io/created-by: ${CREATED_BY}
+        app: ${SERVICE_NAME}
+      name: "${SERVICE_NAME}"
+    spec:
+      replicas: 1
+      selector:
+        app: ${SERVICE_NAME}
+        deploymentconfig: "${SERVICE_NAME}"
+      strategy:
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 1
+          maxUnavailable: 0
+          timeoutSeconds: 600
+          updatePeriodSeconds: 10
+      template:
+        metadata:
+          labels:
+            app: ${SERVICE_NAME}
+            deploymentconfig: "${SERVICE_NAME}"
+        type: Rolling
+        spec:
+          replicas: 1
+          containers:
+            - name: "${SERVICE_NAME}"
+              image: "docker-registry.default.svc:5000/fintech-development/redirector:0.0.1-SNAPSHOT"
+              imagePullPolicy: Always
+              ports:
+                - containerPort: 9091
+                  protocol: TCP
+              resources:
+                limits:
+                  memory: 100Mi
+                requests:
+                  memory: 100Mi
+              livenessProbe:
+                tcpSocket:
+                  port: 9091
+                initialDelaySeconds: 15
+                periodSeconds: 20
+              readinessProbe:
+                tcpSocket:
+                  port: 9091
+                initialDelaySeconds: 5
+                periodSeconds: 10
+
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - ${SERVICE_NAME}
+            from:
+              kind: ImageStreamTag
+              name: redirector:0.0.1-SNAPSHOT
+              namespace: fintech-development
+          type: ImageChange
+
+parameters:
+  - name: SERVICE_NAME
+    displayName: Service Name
+    required: true
+    value: "redirector"
+
+  - name: CI_COMMIT_REF_NAME
+    displayName: Commit Name
+    required: true
+    value: "latest"
+      
+  - name: SERVICE_IMAGE_TAG
+    displayName: Deployment branch
+    required: true
+    value: "latest"
+
+  - name: CREATED_BY
+    description: "name"
+    displayName: "created by"
+    required: true
+    value: "fintech"
